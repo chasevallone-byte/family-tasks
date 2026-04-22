@@ -60,6 +60,7 @@
   .badge-claimed { background: #fef3c7; color: #92400e; }
   .badge-done { background: #d1fae5; color: #065f46; }
   .badge-pool { background: #ede9fe; color: #5b21b6; }
+  .badge-pts { background: #f0fdf4; color: #166534; }
   .task-notes { font-size: 13px; color: #aaa; margin-bottom: 10px; }
   .task-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .btn-claim { background: #1a1a1a; color: #fff; font-size: 13px; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: 600; border: none; }
@@ -205,13 +206,13 @@
     <div class="score-card">
       <div class="score-name">Taylor</div>
       <div class="score-num taylor" id="taylor-score">0</div>
-      <div class="score-goal">of 5 this week</div>
+      <div class="score-goal">of 5 pts this week</div>
       <div class="score-bar"><div class="score-bar-fill taylor" id="taylor-bar" style="width:0%"></div></div>
     </div>
     <div class="score-card">
       <div class="score-name">Logan</div>
       <div class="score-num logan" id="logan-score">0</div>
-      <div class="score-goal">of 5 this week</div>
+      <div class="score-goal">of 5 pts this week</div>
       <div class="score-bar"><div class="score-bar-fill logan" id="logan-bar" style="width:0%"></div></div>
     </div>
   </div>
@@ -244,6 +245,15 @@
       <div class="fg">
         <label>Notes (optional)</label>
         <input type="text" id="f-notes" placeholder="Any extra details..." />
+      </div>
+      <div class="fg">
+        <label>Point value</label>
+        <select id="f-points">
+          <option value="0.5">½ point</option>
+          <option value="1" selected>1 point</option>
+          <option value="2">2 points</option>
+          <option value="3">3 points</option>
+        </select>
       </div>
       <div class="fg">
         <label>Repeats after completion</label>
@@ -439,7 +449,8 @@ function completeTask(who) {
   // Score kids
   if(who==='Taylor'||who==='Logan') {
     if(!weekMeta.scores)weekMeta.scores={Taylor:0,Logan:0};
-    weekMeta.scores[who]=(weekMeta.scores[who]||0)+1;
+    const pts = task.points||1;
+    weekMeta.scores[who]=Math.round(((weekMeta.scores[who]||0)+pts)*10)/10;
     save('weekmeta');
   }
 
@@ -479,6 +490,7 @@ function addTask() {
   tasks.unshift({
     id: Date.now(), title,
     notes: document.getElementById('f-notes').value.trim(),
+    points: parseFloat(document.getElementById('f-points').value)||1,
     repeat: document.getElementById('f-repeat').value,
     claimedBy: null, claimedAt: null,
     createdAt: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
@@ -491,6 +503,7 @@ function addTask() {
 function clearForm() {
   ['f-title','f-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-repeat').value='none';
+  document.getElementById('f-points').value='1';
   document.getElementById('add-msg').textContent='';
 }
 
@@ -526,6 +539,7 @@ function renderPool() {
       <div class="task-meta">
         <span class="badge badge-pool">Available</span>
         ${t.repeat==='weekly'?'<span class="badge badge-repeat">Weekly</span>':''}
+        <span class="badge badge-pts">${t.points===0.5?'½ pt':((t.points||1)+' pt'+(t.points!==1?'s':''))}</span>
       </div>
       ${t.notes?`<div class="task-notes">${t.notes}</div>`:''}
       <div class="task-actions">
@@ -540,6 +554,7 @@ function renderPool() {
       <div class="task-meta">
         <span class="badge badge-claimed">Claimed by ${t.claimedBy}</span>
         ${t.repeat==='weekly'?'<span class="badge badge-repeat">Weekly</span>':''}
+        <span class="badge badge-pts">${t.points===0.5?'½ pt':((t.points||1)+' pt'+(t.points!==1?'s':''))}</span>
       </div>
       ${t.notes?`<div class="task-notes">${t.notes}</div>`:''}
       <div class="task-actions">
