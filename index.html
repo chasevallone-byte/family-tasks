@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Family Tasks</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+  .app { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 5rem; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+  .week-label { font-size: 13px; color: #888; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn-reset { font-size: 11px; background: transparent; border: 1px solid #ddd; color: #aaa; padding: 3px 10px; border-radius: 99px; cursor: pointer; font-family: inherit; }
+  .btn-reset:active { border-color: #e74c3c; color: #e74c3c; }
+  .tabs { display: flex; gap: 2px; border-bottom: 2px solid #e0e0d8; margin-bottom: 1.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { font-size: 13px; padding: 8px 14px; border: none; background: none; cursor: pointer; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; font-family: inherit; font-weight: 500; }
+  .tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+  .count { font-size: 11px; background: #e0e0d8; border-radius: 99px; padding: 1px 6px; color: #666; margin-left: 3px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  /* Score cards */
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+  .score-card { background: #fff; border-radius: 12px; padding: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07); text-align: center; }
+  .score-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 6px; }
+  .score-num { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .score-num.taylor { color: #059669; }
+  .score-num.logan { color: #d97706; }
+  .score-goal { font-size: 11px; color: #bbb; }
+  .score-bar { height: 5px; background: #f0f0e8; border-radius: 99px; margin-top: 8px; overflow: hidden; }
+  .score-bar-fill { height: 5px; border-radius: 99px; transition: width 0.4s; }
+  .score-bar-fill.taylor { background: #059669; }
+  .score-bar-fill.logan { background: #d97706; }
+  .score-bar-fill.done { background: #2ecc71; }
+  /* Form */
+  .fg { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  input[type=text], input[type=password], select {
+    background: #fff; border: 1.5px solid #e0e0d8; border-radius: 8px;
+    color: #1a1a1a; font-family: inherit; font-size: 14px; padding: 9px 12px; width: 100%;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus { outline: none; border-color: #aaa; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+  .actions { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+  .btn { font-size: 14px; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-family: inherit; border: none; font-weight: 600; -webkit-tap-highlight-color: transparent; }
+  .btn-primary { background: #1a1a1a; color: #fff; }
+  .btn-secondary { background: transparent; border: 1.5px solid #ddd; color: #444; font-weight: 500; }
+  .btn-sm { font-size: 13px; padding: 7px 14px; }
+  .status { font-size: 13px; color: #888; min-height: 20px; margin-top: 8px; }
+  .empty { text-align: center; padding: 3rem 1rem; color: #bbb; font-size: 14px; }
+  /* Task cards */
+  .task-card { background: #fff; border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 4px solid #e0e0d8; }
+  .task-card.unclaimed { border-left-color: #c4b5fd; }
+  .task-card.claimed { border-left-color: #f5a623; }
+  .task-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+  .task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 600; }
+  .badge-repeat { background: #f0f0e8; color: #888; }
+  .badge-claimed { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #d1fae5; color: #065f46; }
+  .badge-pool { background: #ede9fe; color: #5b21b6; }
+  .task-notes { font-size: 13px; color: #aaa; margin-bottom: 10px; }
+  .task-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn-claim { background: #1a1a1a; color: #fff; font-size: 13px; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: 600; border: none; }
+  .btn-complete { background: #059669; color: #fff; font-size: 13px; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: 600; border: none; }
+  .btn-unclaim { background: transparent; border: 1.5px solid #ddd; color: #888; font-size: 12px; padding: 5px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+  .btn-delete { background: transparent; border: none; color: #ddd; font-size: 22px; cursor: pointer; padding: 0 4px; line-height: 1; margin-left: auto; }
+  .btn-delete:active { color: #e74c3c; }
+  .sec-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #bbb; margin: 1.25rem 0 8px; }
+  .sec-label:first-child { margin-top: 0; }
+  .form-card { background: #fff; border-radius: 14px; padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+  /* History */
+  .history-card { background: #fff; border-radius: 10px; padding: 0.875rem 1rem; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .history-title { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .history-meta { font-size: 12px; color: #aaa; margin-top: 3px; }
+  /* Sheets */
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: flex-end; justify-content: center; z-index: 150; }
+  .sheet-overlay.open { display: flex; }
+  .sheet { background: #fff; border-radius: 18px 18px 0 0; padding: 1.5rem 1.25rem; width: 100%; max-width: 680px; }
+  .sheet h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .sheet p { font-size: 13px; color: #888; margin-bottom: 1.25rem; }
+  .who-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+  .who-btn { padding: 14px; border-radius: 10px; border: 2px solid #e0e0d8; background: #f8f8f5; cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 600; color: #1a1a1a; text-align: center; -webkit-tap-highlight-color: transparent; }
+  .who-btn.chase { border-color: #bfdbfe; }
+  .who-btn.lisa { border-color: #fbcfe8; }
+  .who-btn.taylor { border-color: #a7f3d0; }
+  .who-btn.logan { border-color: #fde68a; }
+  .btn-sheet-cancel { width: 100%; padding: 12px; border-radius: 10px; border: 1.5px solid #ddd; background: transparent; font-family: inherit; font-size: 14px; font-weight: 500; color: #888; cursor: pointer; }
+  /* Confirm */
+  .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 1rem; }
+  .confirm-box { background: #fff; border-radius: 14px; padding: 1.5rem; max-width: 320px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+  .confirm-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .confirm-box p { font-size: 14px; color: #666; margin-bottom: 1.25rem; line-height: 1.5; }
+  .confirm-actions { display: flex; gap: 8px; }
+  .confirm-actions .btn { flex: 1; text-align: center; }
+  .btn-confirm-danger { background: #e74c3c; color: #fff; }
+  /* Well done overlay */
+  .welldone-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; z-index: 300; }
+  .welldone-overlay.show { display: flex; }
+  .welldone-overlay img { width: 280px; max-width: 80vw; border-radius: 16px; }
+  .welldone-overlay .welldone-msg { font-size: 28px; font-weight: 700; color: #fff; text-align: center; }
+  /* Login / Loading */
+  .loading-screen { position: fixed; inset: 0; background: #f5f5f0; display: flex; align-items: center; justify-content: center; z-index: 100; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 24px; height: 24px; border: 2px solid #ddd; border-top-color: #1a1a1a; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .login-screen { position: fixed; inset: 0; background: #f5f5f0; display: flex; align-items: center; justify-content: center; z-index: 99; padding: 1rem; }
+  .login-box { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 14px; background: #fff; padding: 2rem; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .login-box h2 { font-size: 20px; font-weight: 700; }
+  .login-box p { font-size: 14px; color: #888; margin-top: -6px; }
+  .login-error { font-size: 13px; color: #e74c3c; min-height: 18px; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #ccc; display: inline-block; margin-left: 6px; vertical-align: middle; transition: background 0.3s; }
+  .sync-dot.syncing { background: #f5a623; }
+  .sync-dot.ok { background: #2ecc71; }
+  .sync-dot.error { background: #e74c3c; }
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="login-screen" style="display:none;">
+  <div class="login-box">
+    <h2>Family Tasks 🏠</h2>
+    <p>Enter the family password.</p>
+    <input type="password" id="login-pw" placeholder="Password" onkeydown="if(event.key==='Enter')checkPassword()" />
+    <button class="btn btn-primary" onclick="checkPassword()">Enter</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="loading-screen" id="loading-screen">
+  <div class="spinner"></div>
+</div>
+
+<div class="confirm-overlay" id="confirm-overlay" style="display:none;">
+  <div class="confirm-box">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p id="confirm-msg">This cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-confirm-danger" id="confirm-ok-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Well done overlay -->
+<div class="welldone-overlay" id="welldone-overlay">
+  <div class="welldone-msg">Well Done! 🎉</div>
+  <img src="https://c.tenor.com/_Q5fyE8bATAAAAAC/tenor.gif" alt="Well done!" />
+</div>
+
+<!-- Claim sheet -->
+<div class="sheet-overlay" id="claim-sheet">
+  <div class="sheet">
+    <h3>Who's claiming this?</h3>
+    <p id="claim-task-title"></p>
+    <div class="who-grid">
+      <button class="who-btn chase" onclick="claimTask('Chase')">Chase</button>
+      <button class="who-btn lisa" onclick="claimTask('Lisa')">Lisa</button>
+      <button class="who-btn taylor" onclick="claimTask('Taylor')">Taylor</button>
+      <button class="who-btn logan" onclick="claimTask('Logan')">Logan</button>
+    </div>
+    <button class="btn-sheet-cancel" onclick="closeClaimSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- Complete sheet -->
+<div class="sheet-overlay" id="complete-sheet">
+  <div class="sheet">
+    <h3>Mark as done?</h3>
+    <p id="complete-task-title"></p>
+    <div class="who-grid">
+      <button class="who-btn chase" onclick="completeTask('Chase')">Chase</button>
+      <button class="who-btn lisa" onclick="completeTask('Lisa')">Lisa</button>
+      <button class="who-btn taylor" onclick="completeTask('Taylor')">Taylor</button>
+      <button class="who-btn logan" onclick="completeTask('Logan')">Logan</button>
+    </div>
+    <button class="btn-sheet-cancel" onclick="closeCompleteSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- Unclaim sheet -->
+<div class="sheet-overlay" id="unclaim-sheet">
+  <div class="sheet">
+    <h3>Who are you?</h3>
+    <p id="unclaim-task-title">Only the person who claimed this can unclaim it.</p>
+    <div class="who-grid">
+      <button class="who-btn chase" onclick="unclaimTask('Chase')">Chase</button>
+      <button class="who-btn lisa" onclick="unclaimTask('Lisa')">Lisa</button>
+      <button class="who-btn taylor" onclick="unclaimTask('Taylor')">Taylor</button>
+      <button class="who-btn logan" onclick="unclaimTask('Logan')">Logan</button>
+    </div>
+    <button class="btn-sheet-cancel" onclick="closeUnclaimSheet()">Cancel</button>
+  </div>
+</div>
+
+<div class="app" style="display:none;" id="main-app">
+  <h1>Family Tasks <span class="sync-dot" id="sync-dot"></span></h1>
+  <div class="week-label">
+    <span id="week-label-text"></span>
+    <button class="btn-reset" onclick="confirmReset()">Reset week</button>
+  </div>
+
+  <!-- Score cards -->
+  <div class="score-grid">
+    <div class="score-card">
+      <div class="score-name">Taylor</div>
+      <div class="score-num taylor" id="taylor-score">0</div>
+      <div class="score-goal">of 5 this week</div>
+      <div class="score-bar"><div class="score-bar-fill taylor" id="taylor-bar" style="width:0%"></div></div>
+    </div>
+    <div class="score-card">
+      <div class="score-name">Logan</div>
+      <div class="score-num logan" id="logan-score">0</div>
+      <div class="score-goal">of 5 this week</div>
+      <div class="score-bar"><div class="score-bar-fill logan" id="logan-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('pool')">Task pool <span class="count" id="pool-count">0</span></button>
+    <button class="tab" onclick="switchTab('add')">+ Add task</button>
+    <button class="tab" onclick="switchTab('history')">History</button>
+  </div>
+
+  <!-- POOL -->
+  <div id="tab-pool" class="section active">
+    <div id="unclaimed-section">
+      <div class="sec-label">Available</div>
+      <div id="unclaimed-list"></div>
+    </div>
+    <div id="claimed-section" style="display:none;">
+      <div class="sec-label">Claimed</div>
+      <div id="claimed-list"></div>
+    </div>
+  </div>
+
+  <!-- ADD -->
+  <div id="tab-add" class="section">
+    <div class="form-card">
+      <div class="fg">
+        <label>Task</label>
+        <input type="text" id="f-title" placeholder="e.g. Vacuum upstairs" />
+      </div>
+      <div class="fg">
+        <label>Notes (optional)</label>
+        <input type="text" id="f-notes" placeholder="Any extra details..." />
+      </div>
+      <div class="fg">
+        <label>Repeats after completion</label>
+        <select id="f-repeat">
+          <option value="none">No repeat — remove when done</option>
+          <option value="weekly">Weekly — stays in pool each week</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="addTask()">Add to pool</button>
+        <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+      </div>
+      <div id="add-msg" class="status"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="tab-history" class="section">
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://phrmkxxcfdesollankvh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBocm1reHhjZmRlc29sbGFua3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MzEwNDEsImV4cCI6MjA5MjMwNzA0MX0.V5631_Ex9Ds6OQNSKlmR8BqfdYM_KG8RVFI2WULrFf0';
+const API = `${SUPABASE_URL}/rest/v1/family_tasks`;
+const HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
+
+let tasks = [], history = [], weekMeta = {};
+let confirmCallback = null, activeTaskId = null;
+
+// ── Supabase ──────────────────────────────────────────────────────
+function setSyncDot(s) { const d=document.getElementById('sync-dot'); d.className='sync-dot'+(s?' '+s:''); }
+
+async function dbGet(type) {
+  const res = await fetch(`${API}?type=eq.${type}&select=*`, { headers: HEADERS });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows.length ? rows[0].data : null;
+}
+
+async function dbSet(type, data) {
+  setSyncDot('syncing');
+  const idMap = { tasks:1, history:2, weekmeta:3 };
+  const id = idMap[type]||1;
+  await fetch(`${API}?type=eq.${type}`, { method:'DELETE', headers: HEADERS });
+  const res = await fetch(API, { method:'POST', headers:{...HEADERS,'Prefer':'return=minimal'}, body:JSON.stringify({id,type,data,updated_at:new Date().toISOString()}) });
+  if (res.ok) { setSyncDot('ok'); setTimeout(()=>setSyncDot(''),2000); } else setSyncDot('error');
+}
+
+async function loadAll() {
+  try {
+    const [t,h,w] = await Promise.all([dbGet('tasks'),dbGet('history'),dbGet('weekmeta')]);
+    tasks=t||[]; history=h||[];
+    weekMeta=w||{ weekStart: getThisMonday(), scores: { Taylor:0, Logan:0 } };
+  } catch(err) { console.error(err); }
+  checkWeekReset();
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  renderAll();
+}
+
+async function save(type) {
+  const map={tasks,history,weekmeta:weekMeta};
+  await dbSet(type,map[type]);
+}
+
+// ── Week management ───────────────────────────────────────────────
+function getThisMonday() {
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun, 1=Mon...
+  const diff = (day===0) ? -6 : 1-day;
+  d.setDate(d.getDate()+diff);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatWeekLabel(dateStr) {
+  if (!dateStr) return '';
+  const [y,m,d] = dateStr.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const start = new Date(parseInt(y), parseInt(m)-1, parseInt(d));
+  const end = new Date(start); end.setDate(start.getDate()+6);
+  return `Week of ${months[start.getMonth()]} ${start.getDate()}`;
+}
+
+function checkWeekReset() {
+  const thisMonday = getThisMonday();
+  if (!weekMeta.weekStart || weekMeta.weekStart < thisMonday) {
+    // Auto reset — new week
+    doReset(thisMonday, false);
+  }
+}
+
+function doReset(mondayStr, manual=true) {
+  weekMeta.weekStart = mondayStr || getThisMonday();
+  weekMeta.scores = { Taylor:0, Logan:0 };
+  // Reset claimed tasks back to pool
+  tasks.forEach(t=>{ t.claimedBy=null; t.claimedAt=null; });
+  Promise.all([save('weekmeta'), save('tasks')]);
+  if (manual) { renderAll(); }
+}
+
+function confirmReset() {
+  showConfirm('Reset the week?', 'This will clear all scores and unclaim all tasks. Use this to manually start a new week.', 'Reset', ()=>{
+    doReset(getThisMonday(), true);
+  });
+}
+
+function updateWeekLabel() {
+  document.getElementById('week-label-text').textContent = formatWeekLabel(weekMeta.weekStart);
+}
+
+function updateScores() {
+  const t = Math.min(weekMeta.scores?.Taylor||0, 5);
+  const l = Math.min(weekMeta.scores?.Logan||0, 5);
+  const tRaw = weekMeta.scores?.Taylor||0;
+  const lRaw = weekMeta.scores?.Logan||0;
+  document.getElementById('taylor-score').textContent = tRaw;
+  document.getElementById('logan-score').textContent = lRaw;
+  document.getElementById('taylor-bar').style.width = Math.min(tRaw/5*100,100)+'%';
+  document.getElementById('logan-bar').style.width = Math.min(lRaw/5*100,100)+'%';
+  document.getElementById('taylor-bar').className = 'score-bar-fill taylor'+(tRaw>=5?' done':'');
+  document.getElementById('logan-bar').className = 'score-bar-fill logan'+(lRaw>=5?' done':'');
+}
+
+// ── Confirm ───────────────────────────────────────────────────────
+function showConfirm(title,msg,okLabel,cb) {
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-msg').textContent=msg;
+  document.getElementById('confirm-ok-btn').textContent=okLabel;
+  confirmCallback=cb;
+  document.getElementById('confirm-overlay').style.display='flex';
+}
+function closeConfirm() { document.getElementById('confirm-overlay').style.display='none'; confirmCallback=null; }
+document.getElementById('confirm-ok-btn').onclick=()=>{ if(confirmCallback)confirmCallback(); closeConfirm(); };
+
+// ── Well done ─────────────────────────────────────────────────────
+function showWellDone() {
+  const el = document.getElementById('welldone-overlay');
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+// ── Sheets ────────────────────────────────────────────────────────
+function openClaimSheet(id) {
+  const task=tasks.find(t=>t.id===id); if(!task)return;
+  activeTaskId=id;
+  document.getElementById('claim-task-title').textContent=task.title;
+  document.getElementById('claim-sheet').classList.add('open');
+}
+function closeClaimSheet() { document.getElementById('claim-sheet').classList.remove('open'); activeTaskId=null; }
+
+function openCompleteSheet(id) {
+  const task=tasks.find(t=>t.id===id); if(!task)return;
+  activeTaskId=id;
+  document.getElementById('complete-task-title').textContent=task.title;
+  document.getElementById('complete-sheet').classList.add('open');
+}
+function closeCompleteSheet() { document.getElementById('complete-sheet').classList.remove('open'); activeTaskId=null; }
+
+function openUnclaimSheet(id) {
+  const task=tasks.find(t=>t.id===id); if(!task)return;
+  activeTaskId=id;
+  document.getElementById('unclaim-task-title').textContent=`Only ${task.claimedBy} can unclaim this task.`;
+  document.getElementById('unclaim-sheet').classList.add('open');
+}
+function closeUnclaimSheet() { document.getElementById('unclaim-sheet').classList.remove('open'); activeTaskId=null; }
+
+// ── Task actions ──────────────────────────────────────────────────
+function claimTask(who) {
+  const task=tasks.find(t=>t.id===activeTaskId); if(!task)return;
+  task.claimedBy=who;
+  task.claimedAt=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  closeClaimSheet();
+  save('tasks'); renderPool(); updateCounts();
+}
+
+function unclaimTask(who) {
+  const task=tasks.find(t=>t.id===activeTaskId); if(!task)return;
+  if(task.claimedBy && task.claimedBy.toLowerCase()!==who.toLowerCase()) {
+    closeUnclaimSheet();
+    setTimeout(()=>alert(`Only ${task.claimedBy} can unclaim this task.`),100);
+    return;
+  }
+  task.claimedBy=null; task.claimedAt=null;
+  closeUnclaimSheet();
+  save('tasks'); renderPool();
+}
+
+function completeTask(who) {
+  const task=tasks.find(t=>t.id===activeTaskId); if(!task)return;
+
+  // Score kids
+  if(who==='Taylor'||who==='Logan') {
+    if(!weekMeta.scores)weekMeta.scores={Taylor:0,Logan:0};
+    weekMeta.scores[who]=(weekMeta.scores[who]||0)+1;
+    save('weekmeta');
+  }
+
+  // History entry
+  history.unshift({
+    id: Date.now(),
+    title: task.title,
+    completedBy: who,
+    completedAt: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    notes: task.notes||''
+  });
+  if(history.length>100) history=history.slice(0,100);
+
+  if(task.repeat==='weekly') {
+    task.claimedBy=null; task.claimedAt=null;
+  } else {
+    tasks=tasks.filter(t=>t.id!==activeTaskId);
+  }
+
+  closeCompleteSheet();
+  Promise.all([save('tasks'),save('history')]);
+  renderPool(); renderHistory(); updateCounts(); updateScores();
+  showWellDone();
+}
+
+function deleteTask(id) {
+  const task=tasks.find(t=>t.id===id); if(!task)return;
+  showConfirm('Delete task?',`"${task.title}" will be permanently removed.`,'Delete',()=>{
+    tasks=tasks.filter(t=>t.id!==id); save('tasks'); renderPool(); updateCounts();
+  });
+}
+
+// ── Add task ──────────────────────────────────────────────────────
+function addTask() {
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){document.getElementById('add-msg').textContent='Please enter a task.';return;}
+  tasks.unshift({
+    id: Date.now(), title,
+    notes: document.getElementById('f-notes').value.trim(),
+    repeat: document.getElementById('f-repeat').value,
+    claimedBy: null, claimedAt: null,
+    createdAt: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+  });
+  save('tasks'); clearForm(); renderPool(); updateCounts();
+  document.getElementById('add-msg').textContent=`"${title}" added to the pool.`;
+  setTimeout(()=>document.getElementById('add-msg').textContent='',2500);
+}
+
+function clearForm() {
+  ['f-title','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-repeat').value='none';
+  document.getElementById('add-msg').textContent='';
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderAll() { renderPool(); renderHistory(); updateCounts(); updateWeekLabel(); updateScores(); }
+
+function updateCounts() {
+  document.getElementById('pool-count').textContent=tasks.length;
+}
+
+function renderPool() {
+  const unclaimed=tasks.filter(t=>!t.claimedBy);
+  const claimed=tasks.filter(t=>t.claimedBy);
+  const uSection=document.getElementById('unclaimed-section');
+  const cSection=document.getElementById('claimed-section');
+  const uList=document.getElementById('unclaimed-list');
+  const cList=document.getElementById('claimed-list');
+
+  cSection.style.display=claimed.length?'block':'none';
+
+  if(!unclaimed.length&&!claimed.length) {
+    uSection.style.display='block';
+    uList.innerHTML='<div class="empty">No tasks in the pool yet. Add some!</div>';
+    cList.innerHTML='';
+    return;
+  }
+
+  uSection.style.display=unclaimed.length?'block':'none';
+
+  uList.innerHTML=unclaimed.map(t=>`
+    <div class="task-card unclaimed">
+      <div class="task-title">${t.title}</div>
+      <div class="task-meta">
+        <span class="badge badge-pool">Available</span>
+        ${t.repeat==='weekly'?'<span class="badge badge-repeat">Weekly</span>':''}
+      </div>
+      ${t.notes?`<div class="task-notes">${t.notes}</div>`:''}
+      <div class="task-actions">
+        <button class="btn-claim" onclick="openClaimSheet(${t.id})">Claim it</button>
+        <button class="btn-delete" onclick="deleteTask(${t.id})">×</button>
+      </div>
+    </div>`).join('');
+
+  cList.innerHTML=claimed.map(t=>`
+    <div class="task-card claimed">
+      <div class="task-title">${t.title}</div>
+      <div class="task-meta">
+        <span class="badge badge-claimed">Claimed by ${t.claimedBy}</span>
+        ${t.repeat==='weekly'?'<span class="badge badge-repeat">Weekly</span>':''}
+      </div>
+      ${t.notes?`<div class="task-notes">${t.notes}</div>`:''}
+      <div class="task-actions">
+        <button class="btn-complete" onclick="openCompleteSheet(${t.id})">Mark done</button>
+        <button class="btn-unclaim" onclick="openUnclaimSheet(${t.id})">Unclaim</button>
+        <button class="btn-delete" onclick="deleteTask(${t.id})">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderHistory() {
+  const list=document.getElementById('history-list');
+  if(!history.length){list.innerHTML='<div class="empty">No completed tasks yet.</div>';return;}
+  list.innerHTML=history.map(h=>`
+    <div class="history-card">
+      <div>
+        <div class="history-title">${h.title}</div>
+        ${h.notes?`<div class="history-meta">${h.notes}</div>`:''}
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <span class="badge badge-done">✓ ${h.completedBy}</span>
+        <div style="font-size:11px;color:#bbb;margin-top:4px;">${h.completedAt}</div>
+      </div>
+    </div>`).join('');
+}
+
+function switchTab(name) {
+  const names=['pool','add','history'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function checkPassword() {
+  const pw=document.getElementById('login-pw').value;
+  if(pw==='BearIsSuperKew'){
+    localStorage.setItem('fam-auth','1');
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('loading-screen').style.display='flex';
+    loadAll();
+  }else{document.getElementById('login-error').textContent='Incorrect password.';}
+}
+
+function init() {
+  if(localStorage.getItem('fam-auth')==='1'){loadAll();}
+  else{document.getElementById('login-screen').style.display='flex';document.getElementById('loading-screen').style.display='none';}
+}
+
+init();
+</script>
+</body>
+</html>
