@@ -315,7 +315,7 @@ async function loadAll() {
     tasks=t||[]; history=h||[];
     weekMeta=w||{ weekStart: getThisMonday(), scores: { Taylor:0, Logan:0 } };
   } catch(err) { console.error(err); }
-  checkWeekReset();
+  await checkWeekReset();
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
   renderAll();
@@ -344,26 +344,25 @@ function formatWeekLabel(dateStr) {
   return `Week of ${months[start.getMonth()]} ${start.getDate()}`;
 }
 
-function checkWeekReset() {
+async function checkWeekReset() {
   const thisMonday = getThisMonday();
   if (!weekMeta.weekStart || weekMeta.weekStart < thisMonday) {
-    // Auto reset — new week
-    doReset(thisMonday, false);
+    await doReset(thisMonday, false);
   }
 }
 
-function doReset(mondayStr, manual=true) {
+async function doReset(mondayStr, manual=true) {
   weekMeta.weekStart = mondayStr || getThisMonday();
   weekMeta.scores = { Taylor:0, Logan:0 };
   // Reset claimed tasks back to pool
   tasks.forEach(t=>{ t.claimedBy=null; t.claimedAt=null; });
-  Promise.all([save('weekmeta'), save('tasks')]);
+  await Promise.all([save('weekmeta'), save('tasks')]);
   if (manual) { renderAll(); }
 }
 
 function confirmReset() {
-  showConfirm('Reset the week?', 'This will clear all scores and unclaim all tasks. Use this to manually start a new week.', 'Reset', ()=>{
-    doReset(getThisMonday(), true);
+  showConfirm('Reset the week?', 'This will clear all scores and unclaim all tasks. Use this to manually start a new week.', 'Reset', async ()=>{
+    await doReset(getThisMonday(), true);
   });
 }
 
